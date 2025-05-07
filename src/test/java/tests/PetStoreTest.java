@@ -26,6 +26,7 @@ import static org.junit.jupiter.api.DynamicTest.dynamicTest;
 
 import animals.petstore.pet.attributes.PetType;
 import animals.petstore.pet.Pet;
+import animals.petstore.pet.types.Snake;
 
 public class PetStoreTest
 {
@@ -42,7 +43,7 @@ public class PetStoreTest
     @DisplayName("Inventory Count Test")
     public void validateInventory()
     {
-        assertEquals(5, petStore.getPetsForSale().size(),"Inventory counts are off!");
+        assertEquals(6, petStore.getPetsForSale().size(),"Inventory counts are off!");
     }
 
     @Test
@@ -64,8 +65,7 @@ public class PetStoreTest
         assertEquals(inventorySize, petStore.getPetsForSale().size(), "Expected inventory does not match actual");
     }
 
-    // New Tests
-    //-------------------------------------------------------------------------------------------------------------------------
+//    New test ---------------------
 
     @Test
     @DisplayName("Sale of cat Remove Item Test")
@@ -78,17 +78,58 @@ public class PetStoreTest
         assertEquals(inventorySize, petStore.getPetsForSale().size(), "Expected inventory does not match actual");
     }
 
+    @Test
+    @DisplayName("Sale of Snake Remove Item Test")
+    public void snakeSoldTest() throws DuplicatePetStoreRecordException, PetNotFoundSaleException {
+        int inventorySize = petStore.getPetsForSale().size() - 1;
+        Snake snake = new Snake(AnimalType.DOMESTIC, Skin.SCALES, Gender.MALE, Breed.BALL_PYTHON,
+                new BigDecimal("200.00"), 4);
+
+        petStore.soldPetItem(snake);
+        assertEquals(inventorySize, petStore.getPetsForSale().size(), "Expected inventory does not match actual");
+    }
+
+    @Test
+    @DisplayName("Snake Not Found Exception Test")
+    public void snakeNotFoundExceptionTest() {
+        Snake snake = new Snake(AnimalType.DOMESTIC, Skin.SCALES, Gender.MALE, Breed.BALL_PYTHON);
+        String expectedMessage = "The Pet is not part of the pet store!!";
+
+        Exception exception = assertThrows(PetNotFoundSaleException.class, () -> {
+            petStore.soldPetItem(snake);
+        });
+        assertEquals(expectedMessage, exception.getMessage());
+    }
+
+    @Test
+    @DisplayName("Snake Duplicate Record Exception Test")
+    public void snakeDupRecordExceptionTest() {
+        petStore.addPetInventoryItem(new Snake(AnimalType.DOMESTIC, Skin.SCALES, Gender.MALE, Breed.BALL_PYTHON,
+                new BigDecimal("200.00"), 4));
+        Snake snake = new Snake(AnimalType.DOMESTIC, Skin.SCALES, Gender.MALE, Breed.BALL_PYTHON,
+                new BigDecimal("200.00"), 4);
+
+        String expectedMessage = "Duplicate Snake record store id [4]";
+        Exception exception = assertThrows(DuplicatePetStoreRecordException.class, () -> {
+            petStore.soldPetItem(snake);
+        });
+        assertEquals(expectedMessage, exception.getMessage(), "DuplicateRecordExceptionTest was NOT encountered!");
+    }
 
     @Test
     @DisplayName("Set Pet Store ID Test")
     public void setPetStoreIdTest() {
+        // Create a snake using constructor matching Pet's constructor pattern
         Dog dog = new Dog(AnimalType.DOMESTIC, new BigDecimal("650.00"), Gender.MALE);
 
+        // Verify initial store ID is 0
         assertEquals(0, dog.getPetStoreId(), "Initial pet store ID should be 0");
 
+        // Change the store ID
         int newStoreId = 10;
         dog.setPetStoreId(newStoreId);
 
+        // Verify the store ID was updated
         assertEquals(newStoreId, dog.getPetStoreId(), "Pet store ID should match the new value");
     }
 
@@ -97,13 +138,14 @@ public class PetStoreTest
     @DisplayName("Add Pet Inventory Test")
     public void addPetInventoryTest() {
         petStore.addPetInventoryItem(new Dog(AnimalType.DOMESTIC, new BigDecimal("650.00"), Gender.MALE));
-        assertEquals(6, petStore.getPetsForSale().size(), "Expected inventory does not match actual");
+        assertEquals(7, petStore.getPetsForSale().size(), "Expected inventory does not match actual");
     }
 
 
     @Test
     @DisplayName("Unknown Pet Type Exception Test")
     public void unknownPetTypeExceptionTest() {
+        // Create a custom pet that's not a Dog, Cat, or Snake
         Pet unknownPet = new Pet(PetType.BIRD, new BigDecimal("100.00"), Gender.MALE, 1) {
             @Override
             public String toString() {
@@ -127,11 +169,10 @@ public class PetStoreTest
         Dog duplicateDog = new Dog(AnimalType.DOMESTIC, Skin.FUR, Gender.MALE, Breed.POODLE,
                 new BigDecimal("650.00"), 1);
 
-
         petStore.initAddDuplicateItem(duplicateDog);
 
-        assertEquals(6, petStore.getPetsForSale().size(),
-                "Inventory should have 6 items after adding duplicate");
+        assertEquals(7, petStore.getPetsForSale().size(),
+                "Inventory should have 7 items after adding duplicate");
 
         assertTrue(petStore.getPetsForSale().stream()
                         .anyMatch(p -> p instanceof Dog &&
@@ -210,11 +251,7 @@ public class PetStoreTest
 
         return nodes.stream();
     }
-
-    /**
-     * Example of parameterized test
-     * @param number to be tested
-     */
+    
     @ParameterizedTest
     @ValueSource(ints = {2, 4, 6, -10, 128, Integer.MIN_VALUE}) // six numbers
     void isNumberEven(int number)
